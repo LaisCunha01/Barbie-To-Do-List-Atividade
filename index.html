@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Barbie To-Do List Deluxe</title>
+  <link rel="stylesheet" href="css/estilo.css">
+  <link rel="icon" href="imagem/icone.webp">
+</head>
+<body>
+  <img class="avatar" src="imagem/Barbie-Logo-1-1.png">
+
+  <h1>🌸 Barbie To-Do List Deluxe 🌸</h1>
+
+  <div class="toggle-dark" onclick="toggleDarkMode()">🌙 Modo Barbie Night Party</div>
+
+  <div class="todo-container">
+    <input type="text" id="taskInput" placeholder="Digite sua tarefa...">
+    <select id="categorySelect">
+      <option value="Estudos">📚 Estudos</option>
+      <option value="Trabalho">💼 Trabalho</option>
+      <option value="Diversão">🎀 Diversão</option>
+      <option value="Compras">🛍️ Compras</option>
+    </select>
+    <button onclick="addTask()">Adicionar</button>
+
+    <br>
+    <label for="filterSelect">Filtrar por categoria:</label>
+    <select id="filterSelect" onchange="filterTasks()">
+      <option value="Todas">🌟 Todas</option>
+      <option value="Estudos">📚 Estudos</option>
+      <option value="Trabalho">💼 Trabalho</option>
+      <option value="Diversão">🎀 Diversão</option>
+      <option value="Compras">🛍️ Compras</option>
+    </select>
+
+    <ul id="taskList"></ul>
+
+    <div id="counter">Tarefas concluídas: 0</div>
+
+    <button class="clear-btn" onclick="clearAll()">🗑️ Limpar Tudo</button>
+  </div>
+
+  <!-- SOM PLIM -->
+  <audio id="plimSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7b4f6e3b4e.mp3?filename=correct-2-46134.mp3"></audio>
+
+  <script>
+    let completedCount = 0;
+
+    window.onload = () => {
+      loadTasks();
+      updateCounter();
+      if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark");
+      }
+    };
+
+    function addTask() {
+      const taskInput = document.getElementById("taskInput");
+      const categorySelect = document.getElementById("categorySelect");
+      const taskList = document.getElementById("taskList");
+
+      if (taskInput.value.trim() === "") {
+        alert("Digite uma tarefa!");
+        return;
+      }
+
+      const li = document.createElement("li");
+      li.setAttribute("data-category", categorySelect.value);
+      li.classList.add("fade-in");
+      li.innerHTML = `
+        <span onclick="toggleTask(this)">${taskInput.value} <span class="categoria">(${categorySelect.value})</span></span>
+        <button onclick="removeTask(this)">❌</button>
+      `;
+      taskList.appendChild(li);
+
+      showGlitter(li);
+
+      taskInput.value = "";
+      saveTasks();
+    }
+
+    function removeTask(button) {
+      const li = button.parentElement;
+
+      if (li.querySelector("span").classList.contains("done")) {
+        completedCount--;
+        updateCounter();
+      }
+
+      li.classList.add("fade-out");
+      setTimeout(() => {
+        li.remove();
+        saveTasks();
+      }, 400);
+    }
+
+    function toggleTask(span) {
+      span.classList.toggle("done");
+
+      if (span.classList.contains("done")) {
+        completedCount++;
+        updateCounter();
+        showStars(span);
+        playPlim();
+      } else {
+        completedCount--;
+        updateCounter();
+      }
+
+      saveTasks();
+    }
+
+    function updateCounter() {
+      document.getElementById("counter").textContent = "Tarefas concluídas: " + completedCount;
+    }
+
+    function showStars(element) {
+      const star = document.createElement("div");
+      star.classList.add("star");
+      star.textContent = "✨";
+      document.body.appendChild(star);
+
+      const rect = element.getBoundingClientRect();
+      star.style.left = rect.left + window.scrollX + "px";
+      star.style.top = rect.top + window.scrollY + "px";
+
+      setTimeout(() => star.remove(), 1000);
+    }
+
+    function showGlitter(element) {
+      const glitter = document.createElement("div");
+      glitter.classList.add("glitter");
+      glitter.textContent = "💖";
+      document.body.appendChild(glitter);
+
+      const rect = element.getBoundingClientRect();
+      glitter.style.left = rect.left + window.scrollX + "px";
+      glitter.style.top = rect.top + window.scrollY + "px";
+
+      setTimeout(() => glitter.remove(), 1000);
+    }
+
+    function playPlim() {
+      document.getElementById("plimSound").play();
+    }
+
+    function filterTasks() {
+      const filterValue = document.getElementById("filterSelect").value;
+      const tasks = document.querySelectorAll("#taskList li");
+
+      tasks.forEach(task => {
+        const category = task.getAttribute("data-category");
+
+        if (filterValue === "Todas" || category === filterValue) {
+          task.classList.remove("fade-out");
+          task.classList.add("fade-in");
+          task.style.display = "flex";
+        } else {
+          task.classList.remove("fade-in");
+          task.classList.add("fade-out");
+          setTimeout(() => task.style.display = "none", 400);
+        }
+      });
+    }
+
+    function saveTasks() {
+      const tasks = [];
+      document.querySelectorAll("#taskList li").forEach(li => {
+        tasks.push({
+          text: li.querySelector("span").childNodes[0].textContent.trim(),
+          category: li.getAttribute("data-category"),
+          done: li.querySelector("span").classList.contains("done")
+        });
+      });
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      localStorage.setItem("completedCount", completedCount);
+    }
+
+    function loadTasks() {
+      const saved = JSON.parse(localStorage.getItem("tasks") || "[]");
+      const taskList = document.getElementById("taskList");
+
+      saved.forEach(task => {
+        const li = document.createElement("li");
+        li.setAttribute("data-category", task.category);
+        li.innerHTML = `
+          <span onclick="toggleTask(this)" class="${task.done ? "done" : ""}">
+            ${task.text} <span class="categoria">(${task.category})</span>
+          </span>
+          <button onclick="removeTask(this)">❌</button>
+        `;
+        taskList.appendChild(li);
+      });
+
+      completedCount = Number(localStorage.getItem("completedCount") || 0);
+    }
+
+    function clearAll() {
+      if (confirm("Tem certeza que deseja apagar TUDO? 💔")) {
+        document.getElementById("taskList").innerHTML = "";
+        completedCount = 0;
+        updateCounter();
+        saveTasks();
+      }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark"));
+    }
+  </script>
+
+</body>
+</html>
